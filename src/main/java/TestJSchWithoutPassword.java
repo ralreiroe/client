@@ -8,6 +8,12 @@ import java.io.File;
  *
  * https://www.programcreek.com/java-api-examples/index.php?class=com.jcraft.jsch.ChannelSftp&method=put
  *
+ *
+ * http://www.jcraft.com/jsch/
+ * https://stackoverflow.com/questions/14617/how-to-retrieve-a-file-from-a-server-via-sftp
+ *
+ *
+ *
  */
 public class TestJSchWithoutPassword {
     public static void main(String args[]) {
