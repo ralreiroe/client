@@ -18,7 +18,15 @@ lazy val root = (project in file(".")).
 
     libraryDependencies += "org.apache.httpcomponents" % "httpclient" % "4.5.3",
 
-    libraryDependencies += "org.scala-lang.modules" % "scala-xml_2.12" % "1.0.6"
+    libraryDependencies += "org.scala-lang.modules" % "scala-xml_2.12" % "1.0.6",
+
+    libraryDependencies += "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.7.2", //https://github.com/typesafehub/scala-logging
+    //logger.debug(s"Some $expensive message!") ====generates this====> if (logger.isDebugEnabled) logger.debug(s"Some $expensive message!")
+//    libraryDependencies += "org.slf4j" % "slf4j-log4j12" % "1.7.25" % "test",
+    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.25" % "test"
+
+
+
 
 
   )
