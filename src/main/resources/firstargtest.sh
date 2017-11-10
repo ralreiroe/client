@@ -13,7 +13,11 @@ done
 
 second_arg=$2
 
+echo === \"\$@\": all or whats remaining after shift
+echo "$@"
+echo ===
 
 if [[ first_arg == z* ]] || [[ second_arg == sec* ]];           #starts with
- then echo first_arg
+ then echo $first_arg
 fi
+
