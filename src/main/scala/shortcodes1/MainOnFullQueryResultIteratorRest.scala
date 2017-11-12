@@ -20,7 +20,7 @@ trait QueryResultProducingCapability {
 /**
   * Runs a number of configured queries against Cesium - just a mock in this case. A real one would read queries from a config file
   */
-class ProducerForAllConfigured {
+object ProducerForAllConfigured {
   def cesiumOutput(cs: QueryResultProducingCapability): Map[Int, Iterator[String]] = (for (qt <- Set(1,2,3)) yield (qt, cs.runQuery(qt))).toMap
 }
 
@@ -36,6 +36,17 @@ object Injector {
       println("injecting")
       ff.replace("sc", linevals(0)).replace("lc", linevals(1))
     }
+  }
+}
+
+object Publisher {
+  def write(name: Int, values: Iterator[String]) = {
+    val fw = new FileWriter(s"${name}.txt", true) //append=true
+    while (values.hasNext) {
+      println("writing line")
+      fw.write(values.next)
+    }
+    fw.close
   }
 }
 
@@ -76,22 +87,13 @@ object MainOnFullQueryResultIteratorRest extends App {
 
   //====Declaring Functions===
 
-  lazy val toCesiumOutputs: QueryResultProducingCapability => Map[Int, Iterator[String]] = qr => (new ProducerForAllConfigured).cesiumOutput(new QueryResultProducingCapability {})
+  lazy val toCesiumOutputs: QueryResultProducingCapability => Map[Int, Iterator[String]] = qr => ProducerForAllConfigured.cesiumOutput(new QueryResultProducingCapability {})
 
   lazy val toExchangeOutputs: Map[Int, Iterator[String]] => Map[Int, Iterator[String]] = cesiumOutput => cesiumOutput.map {
     case (i, it) => (i, Injector.inject(it, "xetra,lc,sc\n"))
   }
 
   lazy val toFiles: Map[Int, Iterator[String]] => Unit = exchangeOutput => exchangeOutput.foreach {
-    case (i,it) => {
-
-      val fw = new FileWriter(s"${i}.txt", true)    //append=true
-      while (it.hasNext) {
-        println("writing line")
-        fw.write(it.next)
-      }
-      fw.close
-    }
+    case (i,it) => Publisher.write(i, it)
   }
-
 }
