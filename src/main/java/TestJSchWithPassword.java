@@ -1,6 +1,7 @@
 import com.jcraft.jsch.*;
 
 import java.io.File;
+import java.util.Scanner;
 
 
 /**
@@ -19,8 +20,12 @@ public class TestJSchWithPassword {
             session = jsch.getSession("admin", "127.0.0.1", 22);
             session.setConfig("StrictHostKeyChecking", "no");
 
-//            session.setPassword(System.console().readPassword().toString());
-            session.setPassword(System.getProperty("password"));
+//            String password = System.console().readPassword().toString();
+            String password = new Scanner(System.in).nextLine();
+
+            session.setPassword(password);
+            System.out.println(password);
+//            session.setPassword(System.getProperty("password"));
 
             session.connect();
 

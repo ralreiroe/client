@@ -25,7 +25,7 @@ public class TestJSchWithoutPassword {
             jsch.addIdentity(System.getProperty("user.home") + "/.ssh/id_rsa");
             session = jsch.getSession("admin", "127.0.0.1", 22);
             session.setConfig("StrictHostKeyChecking", "no");
-//            session.setPassword(System.getProperty("password"));
+
             session.connect();
 
             Channel channel = session.openChannel("sftp");
