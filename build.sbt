@@ -23,10 +23,8 @@ lazy val root = (project in file(".")).
     libraryDependencies += "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.7.2", //https://github.com/typesafehub/scala-logging
     //logger.debug(s"Some $expensive message!") ====generates this====> if (logger.isDebugEnabled) logger.debug(s"Some $expensive message!")
 //    libraryDependencies += "org.slf4j" % "slf4j-log4j12" % "1.7.25" % "test",
-    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.25" % "test"
-
-
-
-
+    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.25" % "test",
+    libraryDependencies += "com.typesafe.play" % "play-json_2.12" % "2.6.2",
+    libraryDependencies += "javax.mail" % "mail" % "1.4"
 
   )
