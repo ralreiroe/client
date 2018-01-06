@@ -7,6 +7,7 @@ package example
 
 object ArgTest extends App {
 
+  println(args(0))
   println(s"===")
   args.foreach(println)
 
