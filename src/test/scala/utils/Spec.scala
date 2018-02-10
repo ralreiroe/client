@@ -5,7 +5,7 @@ import org.scalatest.concurrent.ScalaFutures
 
 trait Spec
   extends FreeSpecLike
-    with MustMatchers
+    with Matchers
     with DiagrammedAssertions
     with TryValues
     with OptionValues

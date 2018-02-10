@@ -4,6 +4,8 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.DefaultHttpClient
 import org.scalatest._
 
+import scala.util.Try
+
 class HttpClientSpec extends FlatSpec with MustMatchers {
   """getRestContent("http://localhost:9000")""" must """include ("Welcome to Play")""" in {
 
@@ -15,7 +17,7 @@ class HttpClientSpec extends FlatSpec with MustMatchers {
       */
     def getRestContent(url: String): String = {
       val httpClient = new DefaultHttpClient()
-      val httpResponse = httpClient.execute(new HttpGet(url))
+      val httpResponse = Try(httpClient.execute(new HttpGet(url))).getOrElse(fail)
       val entity = httpResponse.getEntity()
       var content = ""
       if (entity != null) {

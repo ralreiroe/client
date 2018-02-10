@@ -1,5 +1,7 @@
 import java.io.File
 
+import utils.Spec
+
 import scala.io.Source
 import scala.util.matching.Regex
 
