@@ -1,10 +1,10 @@
-package example
+package example.p180210
 
 import scala.collection.immutable.Stream
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
-object RunRepeatedly extends App {
+object CallByName extends App {
 
   def rep(i: Int): Stream[String] = s"${i} times" #:: rep(i + 1)
 
@@ -64,4 +64,33 @@ cnt = 0
 cnt = 0
   x = Try.apply(withProgress(computation))//shouldBe Failure(java.lang.Exception)
   println(x)
+
+
+  println("++++")
+
+
+  def computationWithInput(input: String) = {
+    println(s"sleeping ${input}")
+    Thread.sleep(2000)
+    cnt+=1
+    if (cnt < 3) throw new Exception
+    555
+  }
+
+  cnt = 0
+  x = runRepeatedly(computationWithInput("value")) //shouldBe Success(555)
+  println(x)
+
+  cnt = 0
+  x = withProgress(runRepeatedly(computationWithInput("value"))) //shouldBe Success(555)
+  println(x)
+
+  cnt = 0
+  x = runRepeatedly(withProgress(computationWithInput("value"))) //shouldBe Success(555)
+  println(x)
+
+  cnt = 0
+  x = Try.apply(withProgress(computationWithInput("value")))//shouldBe Failure(java.lang.Exception)
+  println(x)
+
 }
