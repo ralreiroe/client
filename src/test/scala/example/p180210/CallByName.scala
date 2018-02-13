@@ -50,19 +50,19 @@ object CallByName extends App {
 
   var x: Try[Int] = null
 
-  x = runRepeatedly(computation) //shouldBe Success(555)
+  x = runRepeatedly(computation) //computation is not called before being passed
   println(x)
 
 cnt = 0
-  x = withProgress(runRepeatedly(computation)) //shouldBe Success(555)
+  x = withProgress(runRepeatedly(computation)) //computation is not called before being passed
   println(x)
 
 cnt = 0
-  x = runRepeatedly(withProgress(computation)) //shouldBe Success(555)
+  x = runRepeatedly(withProgress(computation)) //computation is not called before being passed
   println(x)
 
 cnt = 0
-  x = Try.apply(withProgress(computation))//shouldBe Failure(java.lang.Exception)
+  x = Try.apply(withProgress(computation))//computation is not called before being passed
   println(x)
 
 
