@@ -1,14 +1,32 @@
 import java.util
 
+/**
+  * mutable immutable prepend append
+  */
 object MemoryTestS extends App {
 
-  val map = new util.HashMap[Integer, NewObject]
+  val mutableMap = new util.HashMap[Integer, NewObject]
 
     val list = scala.collection.mutable.ListBuffer.empty[NewObject]
-//  var list = List.empty[NewObject]
+  var immutableList = List.empty[NewObject]
 
 
   //  https://stackoverflow.com/questions/17374743/how-can-i-get-the-memory-that-my-java-program-uses-via-javas-runtime-api
+
+
+  def createAndAddToMutableBuffer(i: Int): Unit = {
+    mutableMap.put(i, new NewObject)
+    ()
+  }
+  def prependToImmutableList(i: Int): Unit = {
+    list :+ new NewObject
+    ()
+  }
+  def appendToImmutableList(i: Int): Unit = {
+    immutableList = new NewObject :: immutableList
+  }
+
+  @volatile var stop = false
 
 
   def elapsed[T](f: => T): T = {
@@ -23,7 +41,7 @@ object MemoryTestS extends App {
   var prevTotal = 0L
   var prevFree = rt.freeMemory
 
-  def block =
+  def block(testCode: Int => Unit) =
 
     for (i <- 0 until 33000000) {
       val total = rt.totalMemory / 1000000
@@ -38,13 +56,14 @@ object MemoryTestS extends App {
         prevFree = free
 
       }
-      //    list = new NewObject :: list
-      list :+ new NewObject
-      //    map.put(i, new NewObject)
+
+      testCode(i)
 
     }
 
-  elapsed(block)
+//  elapsed(block(createAndAddToMutableBuffer))
+//  elapsed(block(appendToImmutableList))
+  elapsed(block(prependToImmutableList))
 
   println("finished")
 
