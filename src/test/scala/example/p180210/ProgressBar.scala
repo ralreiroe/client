@@ -25,15 +25,20 @@ object ProgressBar extends App {
   def withProgress[T](f: => T): T = {
     var i = 0
     var ready = false
+
+    def progressloop = while (!ready) {
+      i = i + 1
+      Thread.sleep(500)
+      print(s"\rElapsed: ${i * 500} ms")
+    }
+
     Future {
-      while (!ready) {
-        i = i + 1
-        Thread.sleep(500)
-        print(s"\rElapsed: ${i * 500} ms")
-      }
+      progressloop
     }
 
     val r = Try.apply(f)
+
+
     ready = true
     r.get
   }
