@@ -86,15 +86,15 @@ object MyFuture {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  def apply(f: Unit => Int) = {
-    val intPromise: MyPromise[Int] = new MyPromise[Int]()
+  def apply[T](f: Unit => T) = {
+    val intPromise: MyPromise[T] = new MyPromise[T]()
 
     val startPromise = new MyPromise[Unit]()
 
-    val ftry: Try[Unit] => Try[Int] = (x: Try[Unit]) => x map f
+    val ftry: Try[Unit] => Try[T] = (x: Try[Unit]) => x map f
 
     startPromise.registerCallback((result: Try[Unit]) => { //runs f on value in startPromise
-      val triedInt: Try[Int] = try {
+      val triedInt: Try[T] = try {
         ftry(result)
       } catch {
         case NonFatal(t) => Failure(t)
@@ -102,7 +102,7 @@ object MyFuture {
       intPromise.complete(triedInt) //complete and trigger intPromise's callbacks
     })
 
-    startPromise.complete(Success()) //complete and trigger intPromise's callbacks
+    startPromise.complete(Success()) //complete and trigger startPromise's callbacks
 
     intPromise
   }
