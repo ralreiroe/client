@@ -82,11 +82,33 @@ class MyPromise[T] extends AtomicReference[AnyRef](Nil) {
 }
 
 
-
-
-object ImplementFutureMap extends App {
+object MyFuture {
 
   import scala.concurrent.ExecutionContext.Implicits.global
+
+  def apply(f: Unit => Int) = {
+    val intPromise: MyPromise[Int] = new MyPromise[Int]()
+
+    val startPromise = new MyPromise[Unit]()
+
+    val ftry: Try[Unit] => Try[Int] = (x: Try[Unit]) => x map f
+
+    startPromise.registerCallback((result: Try[Unit]) => { //runs f on value in startPromise
+      val triedInt: Try[Int] = try {
+        ftry(result)
+      } catch {
+        case NonFatal(t) => Failure(t)
+      }
+      intPromise.complete(triedInt) //complete and trigger intPromise's callbacks
+    })
+
+    startPromise.complete(Success()) //complete and trigger intPromise's callbacks
+
+    intPromise
+  }
+}
+
+object ImplementFutureMap extends App {
 
   var i = 0
   val f1: Unit => Int = (x: Unit) => {
@@ -100,24 +122,8 @@ object ImplementFutureMap extends App {
     333
   }
 
-//  val p = MyFuture{ f1 }
-  val f1try: Try[Unit] => Try[Int] = (x: Try[Unit]) => x map f1
+  val intPromise = MyFuture{ f1 }
 
-  val intPromise: MyPromise[Int] = new MyPromise[Int]()
-
-  val startPromise = new MyPromise[Unit]()
-
-  startPromise.registerCallback((result: Try[Unit]) => { //runs f2 on value in startPromise
-    val triedInt: Try[Int] = try {
-      f1try(result)
-    } catch {
-      case NonFatal(t) => Failure(t)
-    }
-    intPromise.complete(triedInt) //complete and trigger secondPromise's callbacks
-  })
-
-
-  startPromise.complete(Success())
 
 
   while (!intPromise.isCompleted) {
