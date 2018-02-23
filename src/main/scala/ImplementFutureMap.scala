@@ -77,27 +77,24 @@ class MyPromise[T] extends AtomicReference[AnyRef](Nil) {
       case _ => throw new IllegalStateException("Promise already completed.")
     }
 
+  def map[S](f: T => S)(implicit executor: ExecutionContext): MyPromise[S] = {
 
-}
+    val sPromise = new MyPromise[S]()
 
+    val triedTToTriedS = (triedT: Try[T]) => try { triedT map f } catch { case NonFatal(t) => Failure(t) }
 
-trait Future[T] {
+    this.runAsyncOnceComplete(triedTToTriedS.andThen(sPromise.runAsync))
 
-  def map[S](f: T => S)(implicit executor: ExecutionContext): Future[S] = {
-
-
-
-    null
+    sPromise
   }
 
 
 }
 
-object MyFuture {
+object MyPromise {
 
-  import scala.concurrent.ExecutionContext.Implicits.global
 
-  def apply[T](f: Unit => T) = {
+  def apply[T](f: Unit => T)(implicit executor: ExecutionContext) = {
     val tPromise: MyPromise[T] = new MyPromise[T]()
 
     val startPromise = new MyPromise[Unit]()
@@ -114,6 +111,9 @@ object MyFuture {
 
 object ImplementFutureMap extends App {
 
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+
   var i = 0
   val f1: Unit => Int = (x: Unit) => {
     println(Thread.currentThread())
@@ -126,16 +126,29 @@ object ImplementFutureMap extends App {
     333
   }
 
-  val intPromise = MyFuture{ f1 }
+  val f2: Int => Int = (x: Int) => {
+    println(Thread.currentThread())
+    while (i < 8) {
+      Thread.sleep(1000);
+      println(s"${i}-" + Thread.currentThread())
+      i = i + 1
+    }
+    println(";;;")
+    x+334
+  }
+
+  val intPromise = MyPromise{ f1 }
+
+  val intPromise2 = intPromise.map(f2)
 
 
 
-  while (!intPromise.isCompleted) {
+  while (!intPromise2.isCompleted) {
     println(s"sleeping in ${Thread.currentThread()}")
     Thread.sleep(1000)
   }
 
-  println(intPromise.get())
+  println(intPromise2.get())
 
   //  (new CallbackRunnable(global.prepare(), f2)).executeWithValue(Success())
 
