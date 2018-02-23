@@ -102,7 +102,7 @@ object MyFuture {
 
     val startPromise = new MyPromise[Unit]()
 
-    val triedUnitToTriedT = (triedUnit: Try[Unit]) => try { Success(f(triedUnit.get)) } catch { case NonFatal(t) => Failure(t) }
+    val triedUnitToTriedT = (triedUnit: Try[Unit]) => try { triedUnit map f } catch { case NonFatal(t) => Failure(t) }
 
     startPromise.runAsyncOnceComplete(triedUnitToTriedT.andThen(tPromise.runAsync))
 
