@@ -42,18 +42,18 @@ class MyPromise[T] extends AtomicReference[AnyRef](Nil) {
     case _ => false
   }
 
-  def registerCallback[U](func: Try[T] => U)(implicit executor: ExecutionContext) = runOnValueIfCompleteOtherwiseDefer(func)
-  def complete[U](value: Try[T])(implicit executor: ExecutionContext) = completeWithAndExecuteCallbacksOn(value)
+  private def registerCallback[U](func: Try[T] => U)(implicit executor: ExecutionContext) = runAsyncOnceComplete(func)
+  private def complete[U](value: Try[T])(implicit executor: ExecutionContext) = runAsync(value)
 
   @tailrec
-  final def runOnValueIfCompleteOtherwiseDefer[U](func: Try[T] => U)(implicit executor: ExecutionContext): Unit = {
+  final def runAsyncOnceComplete[U](func: Try[T] => U)(implicit executor: ExecutionContext): Unit = {
 
     val runnable = new CallbackRunnable[T](executor.prepare(), func)
 
     get() match {
       case r: Try[_] => runnable.executeWithValue(r.asInstanceOf[Try[T]])
       case listeners: List[_] => if (compareAndSet(listeners, runnable :: listeners)) ()
-      else runOnValueIfCompleteOtherwiseDefer(func)
+      else runAsyncOnceComplete(func)
     }
 
   }
@@ -64,7 +64,7 @@ class MyPromise[T] extends AtomicReference[AnyRef](Nil) {
     * @param v
     */
   @tailrec
-  final def completeWithAndExecuteCallbacksOn(v: Try[T]): Unit =
+  final def runAsync(v: Try[T]): Unit =
 
     get() match {
 
@@ -72,39 +72,43 @@ class MyPromise[T] extends AtomicReference[AnyRef](Nil) {
         val runnables = raw.asInstanceOf[List[CallbackRunnable[T]]]
 
         if (compareAndSet(runnables, v))
-          runnables.foreach(r => r.executeWithValue(v)) else completeWithAndExecuteCallbacksOn(v)
+          runnables.foreach(r => r.executeWithValue(v)) else runAsync(v)
 
       case _ => throw new IllegalStateException("Promise already completed.")
     }
 
-  def map[S](f: Int => Int)(implicit executor: ExecutionContext): Future[S] = {null}
 
 }
 
+
+trait Future[T] {
+
+  def map[S](f: T => S)(implicit executor: ExecutionContext): Future[S] = {
+
+
+
+    null
+  }
+
+
+}
 
 object MyFuture {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   def apply[T](f: Unit => T) = {
-    val intPromise: MyPromise[T] = new MyPromise[T]()
+    val tPromise: MyPromise[T] = new MyPromise[T]()
 
     val startPromise = new MyPromise[Unit]()
 
-    val ftry: Try[Unit] => Try[T] = (x: Try[Unit]) => x map f
+    val triedUnitToTriedT = (triedUnit: Try[Unit]) => try { Success(f(triedUnit.get)) } catch { case NonFatal(t) => Failure(t) }
 
-    startPromise.registerCallback((result: Try[Unit]) => { //runs f on value in startPromise
-      val triedInt: Try[T] = try {
-        ftry(result)
-      } catch {
-        case NonFatal(t) => Failure(t)
-      }
-      intPromise.complete(triedInt) //complete and trigger intPromise's callbacks
-    })
+    startPromise.runAsyncOnceComplete(triedUnitToTriedT.andThen(tPromise.runAsync))
 
-    startPromise.complete(Success()) //complete and trigger startPromise's callbacks
+    startPromise.runAsync(Success()) //complete startPromise and trigger its callbacks
 
-    intPromise
+    tPromise
   }
 }
 
