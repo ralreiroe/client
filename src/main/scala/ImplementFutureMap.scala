@@ -43,7 +43,7 @@ class MyPromise[T] extends AtomicReference[AnyRef](Nil) {
   }
 
   private def registerCallback[U](func: Try[T] => U)(implicit executor: ExecutionContext) = runAsyncOnceComplete(func)
-  private def complete[U](value: Try[T])(implicit executor: ExecutionContext) = runAsync(value)
+  private def complete[U](value: Try[T])(implicit executor: ExecutionContext) = swapInValueAndExecuteList(value)
 
   @tailrec
   final def runAsyncOnceComplete[U](func: Try[T] => U)(implicit executor: ExecutionContext): Unit = {
@@ -60,11 +60,11 @@ class MyPromise[T] extends AtomicReference[AnyRef](Nil) {
 
   /**
     * the secret to combining futures.
-    * the "parent" promise swaps list of deferred functions for value and triggers list execution
+    * the value goes in, the list goes out and is executed
     * @param v
     */
   @tailrec
-  final def runAsync(v: Try[T]): Unit =
+  final def swapInValueAndExecuteList(v: Try[T]): Unit =
 
     get() match {
 
@@ -72,20 +72,24 @@ class MyPromise[T] extends AtomicReference[AnyRef](Nil) {
         val runnables = raw.asInstanceOf[List[CallbackRunnable[T]]]
 
         if (compareAndSet(runnables, v))
-          runnables.foreach(r => r.executeWithValue(v)) else runAsync(v)
+          runnables.foreach(r => r.executeWithValue(v)) else swapInValueAndExecuteList(v)
 
       case _ => throw new IllegalStateException("Promise already completed.")
     }
 
+  /**
+    * Return a promise to the result of f
+    */
   def map[S](f: T => S)(implicit executor: ExecutionContext): MyPromise[S] = {
 
-    val sPromise = new MyPromise[S]()
+    val nextPromise = new MyPromise[S]()
 
     val triedTToTriedS = (triedT: Try[T]) => try { triedT map f } catch { case NonFatal(t) => Failure(t) }
 
-    this.runAsyncOnceComplete(triedTToTriedS.andThen(sPromise.runAsync))
+    //composition!!! nextPromise.swapInValueAndExecuteList is called with result of triedTToTriedS
+    this.runAsyncOnceComplete(triedTToTriedS.andThen(nextPromise.swapInValueAndExecuteList))
 
-    sPromise
+    nextPromise
   }
 
 
@@ -101,9 +105,9 @@ object MyPromise {
 
     val triedUnitToTriedT = (triedUnit: Try[Unit]) => try { triedUnit map f } catch { case NonFatal(t) => Failure(t) }
 
-    startPromise.runAsyncOnceComplete(triedUnitToTriedT.andThen(tPromise.runAsync))
+    startPromise.runAsyncOnceComplete(triedUnitToTriedT.andThen(tPromise.swapInValueAndExecuteList))
 
-    startPromise.runAsync(Success()) //complete startPromise and trigger its callbacks
+    startPromise.swapInValueAndExecuteList(Success())
 
     tPromise
   }
@@ -137,8 +141,17 @@ object ImplementFutureMap extends App {
     x+334
   }
 
-  val intPromise = MyPromise{ f1 }
+  /**
+    * On the implementation side there is never a single promise. There are always at least two.
+    */
+  val intPromise = MyPromise{ f1 }    //Involves a "start or root promise" and a target promise
 
+  //The start promise will contain a list of one runnable
+  //the target promise will - at this stage - contain of an empty list
+
+  //the start promise's runnable will contain a function that consists of (f1 - followed by - targetPromise.swapInValueAndExecuteList)
+
+  //return a promise to the result of f2
   val intPromise2 = intPromise.map(f2)
 
 
