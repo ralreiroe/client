@@ -1,9 +1,12 @@
 import java.util.concurrent.Callable
 
 /**
-  * A Future is a runnable that in the run method calls a Callable, stores the result (or an exception if not successful) and
-  * unparks any waiting threads
-  * The Java version of it also has a get() method that parks the calling thread to sleep until the result is available
+  * In Java, a FutureTask is a Runnable that is created by an Executor with a function (a Callable) and a null result initially.
+  * Upon Executor.submit you get the future back immediately and can then either poll it for the result or wait for it using a
+  * self-thread-blocking call to get().
+  * The FutureTask also has a get() function that will block the sending thread.
+  *
+  * Once the Executor runs the FutureTask, all waiting threads are awoken.
   *
   *
   * https://www.artima.com/insidejvm/ed2/threadsynch.html
@@ -13,7 +16,7 @@ case class SyncObject() {
   def awakeAndRemoveThreadsFromWaitQueue = notifyAll()
 }
 
-class MyFutureTask[T](c: Callable[T]) extends Runnable {
+class MyFutureTask[T](c: => T) extends Runnable {
 
   var outcome: T = null.asInstanceOf[T]
   var syncObj = SyncObject()
@@ -21,7 +24,7 @@ class MyFutureTask[T](c: Callable[T]) extends Runnable {
 
   override def run(): Unit = {
 
-    val result = c.call()
+    val result = c
     outcome = result
     syncObj.synchronized { syncObj.awakeAndRemoveThreadsFromWaitQueue }
   }
@@ -43,9 +46,9 @@ class MyFutureTask[T](c: Callable[T]) extends Runnable {
 object MyExecutor {
 
   /** run the callable code in another thread */
-  def submit[T](c: Callable[T]) = {
+  def submit[T](c: => T) = {
 
-    val ft = new MyFutureTask[T](c)
+    val ft = new MyFutureTask(c)
     val t = new Thread(ft)
     t.start()
 
@@ -63,8 +66,7 @@ object MyExecutor {
 object OnlyhaveBusyThreads extends App{
 
   var i = 0
-  val callable = new Callable[String] {
-    override def call(): String = {
+  def call(): String = {
       println(Thread.currentThread())
       while (i<15) {
         Thread.sleep(1000);
@@ -74,9 +76,8 @@ object OnlyhaveBusyThreads extends App{
       println("+++callable about to finish+++")
       "333"
     }
-  }
 
-  val ft: MyFutureTask[String] = MyExecutor.submit(callable)
+  val ft: MyFutureTask[String] = MyExecutor.submit(call)
 
 
   var j = 0
